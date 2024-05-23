@@ -1,6 +1,7 @@
 const user = require("../db/models/user");
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const validateUser = require('../validators/validateUser');
 
 const generateToken = (payload) => {
  return jwt.sign(payload,process.env.JWT_SECRET_KEY,
@@ -11,6 +12,14 @@ const generateToken = (payload) => {
  
 const signup = async (req,res,next) => {
    const body = req.body;
+  
+    if(response.error) 
+    {   
+       return res.json({
+          status: 'Failed',
+          message: response.error.details[0].message
+        }) 
+    } 
 
    if(!['1','2'].includes(body.userType)){
      return res.status(400).json({
@@ -82,5 +91,27 @@ const login = async (req, res, next) => {
     }); 
 }
 
+// const authentication = catchAsync(( req ,res, next) => {}
+
+//   let idToken = '';
+//   if(
+//     req.headers.authorization && 
+//     req.headers.authorization.startsWith('Bearer')
+//   ){
+//     idToken = req.headers.authorization.split(' ')[1];
+//   }
+//   if(!idToken){
+//      return next(new AppError('please login to get access token'));
+//   }
+
+//   const tokenDetail = jwt.verify(idToken, process.env.JWT_SECRET_KEY);
+
+//   const freshUser = user.findByPk(tokenDetail.id);
+
+//   if(!freshUser){
+//     return next(new AppError('user not found',400));
+//   }
+//   req.user = freshUser;
+//   return next();// }) 
 
 module.exports = { signup , login } 
