@@ -3,7 +3,10 @@ require('dotenv').config({path:`${process.cwd()}/.env`});
 
 
 const authRouter = require('./routes/authRoutes');
-const astchAsync = require('./utils/catchasync');
+const userRouter = require('./routes/userRoute');
+const astchAsync = require('./utils/catchAsync');
+const fs = require('fs').promises;
+const path = require('path');
 const AppError = require('./utils/apperr');
 
 const app = express();
@@ -18,7 +21,27 @@ app.get('/', (req, res) => {
 
 // all routes will be here 
 
+
+
+// Middleware to log requests to a file
+const logRequests = async (req, res, next) => {
+    const logMessage = `${req.path}: ${req.method} : ${new Date().toISOString()}\n`;
+    const logFilePath = path.join(__dirname, 'Log.txt');
+
+    try {
+        await fs.appendFile(logFilePath, logMessage);
+        console.log("Log entry created");
+    } catch (err) {
+        console.error("Error writing to log file", err);
+    }
+
+    next();
+};
+
+app.use(logRequests);
 app.use('/api/v1/auth',authRouter);
+app.use('/api/v1/users', userRouter);
+
 
 app.use('*', 
 astchAsync(async(req, res, next) => {
