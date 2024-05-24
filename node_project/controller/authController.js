@@ -1,7 +1,7 @@
 const user = require("../db/models/user");
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const validateUser = require('../validators/validateUser');
+const validateUser = require('../utils/validation');
 
 const generateToken = (payload) => {
  return jwt.sign(payload,process.env.JWT_SECRET_KEY,
@@ -12,14 +12,6 @@ const generateToken = (payload) => {
  
 const signup = async (req,res,next) => {
    const body = req.body;
-  
-    if(response.error) 
-    {   
-       return res.json({
-          status: 'Failed',
-          message: response.error.details[0].message
-        }) 
-    } 
 
    if(!['1','2'].includes(body.userType)){
      return res.status(400).json({
@@ -27,6 +19,7 @@ const signup = async (req,res,next) => {
        message: 'Invalid user type'
      })
    }
+  
 
  const newUser = await user.create({
     userType: body.userType,
@@ -63,33 +56,51 @@ const signup = async (req,res,next) => {
  
 };
 
-const login = async (req, res, next) => {
-    const {email, password} = req.body
-
-    if(!email || !password){
-       return res.status(400).json({
-            status: 'Failed',
-            message: 'Please provide a first name and password'
-        })
-    }
-
-    const result =await user.findOne({where:{email}});
-    if(!result || await bcrypt.compare(password, result.password)){
-        return res.status(401).json({
-            status: 'Fail',
-            message: 'Incorrect email or password'
-        })
-    }
-    
-    const token = generateToken({
-        id: result.id
+const login = async (req, res) => {
+  try {
+ const { email, password } = req.body;
+ 
+    //find a user by their email
+    const User = await user.findOne({
+      where: {
+      email: email
+    } 
+      
     });
-
-    return res.json({
-       status:"success",
-       token,
-    }); 
-}
+ 
+    //if user email is found, compare password with bcrypt
+    if (User) {
+      const isSame = await bcrypt.compare(password, User.password);
+ 
+      //if password is the same
+       //generate token with the user's id and the secretKey in the env file
+ 
+      if (isSame) {
+        let token = jwt.sign({ id: User.id }, process.env.JWT_SECRET_KEY, {
+          expiresIn: 1 * 24 * 60 * 60 * 1000,
+        });
+ 
+        //if password matches wit the one in the database
+        //go ahead and generate a cookie for the user
+        res.cookie("jwt", token, { maxAge: 1 * 24 * 60 * 60, httpOnly: true });
+        console.log("user", JSON.stringify(User, null, 2));
+        console.log(token);
+        //send user data
+        return res.status(201).send({
+         status:"success",
+         token,
+        });
+      } else {
+        return res.status(401).send("Authentication failed");
+      }
+    } else {
+      return res.status(401).send("Authentication failed");
+    }
+  } catch (error) {
+    console.log(error);
+  }
+ };
+ 
 
 // const authentication = catchAsync(( req ,res, next) => {}
 

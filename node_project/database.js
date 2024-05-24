@@ -7,3 +7,4 @@ const config = require('./config/config.js');
 const sequelize = new Sequelize(config[env]);
 
 module.exports = sequelize;
+   
